@@ -4,10 +4,15 @@ The verifier holds no private key and no state file beyond the two inputs.
 For every entry it re-derives (a) the canonical action bytes and the
 ``action_hash``; (b) the chain linkage; (c) the per-append seal — the entry's
 own seal must cover the head THROUGH that entry and validate under the
-receipt's ``executor`` principal; (d) for every OPEN entry of a gated class,
-the approval: SSHSIG valid over the entry's OWN action hash, principal inside
-``allowed_signers`` and distinct from the executor (the trust split);
-(e) the single-use ledger: no nonce consumed twice.
+receipt's ``executor`` principal against a content-only preimage (the seal
+binds the chain bytes, not the file's name, so an offsite copy under a
+different filename verifies identically); (d) for every OPEN entry of a
+gated class, the approval: SSHSIG valid over the entry's OWN action hash,
+principal inside ``allowed_signers`` and distinct from the executor (the
+trust split); (e) the single-use ledger: no nonce consumed twice. Never
+trusted: (f) the writer's own ``gated`` flag — an OPEN on a permanently
+irreversible class (pay/submit/delete/send/publish) with the flag cleared
+is rejected without needing a policy file.
 
 Exit taxonomy (§7): **0** verified; **1** any tamper/spend/split breach —
 including UNSEALED = NOT OK (crash-truncated tail, missing seal, stale seal);
@@ -24,11 +29,13 @@ import os
 
 from . import receipt
 from .gate import APPROVAL_NAMESPACE, action_hash, approval_preimage, spent_nonces
+from .policy import IRREVERSIBLE
 
 # Breach classes verify can report (each one ALSO has a discriminating test):
 BREACHES = (
     "MISMATCHED-ACTION-HASH",
     "NO-APPROVAL-ON-OPEN",
+    "GATED-CLASS-WITHOUT-APPROVAL",
     "APPROVAL-INVALID",
     "TRUST-SPLIT-VIOLATION",
     "SPENT-NONCE-REUSE",
@@ -77,7 +84,6 @@ def verify(receipt_path, allowed_signers):
         return _raise1(breach, str(exc))
     executor = doc["executor"]
     entries = doc.get("entries", [])
-    path = receipt.normalize_path(receipt_path)
 
     seen = set()
     for index, entry in enumerate(entries):
@@ -94,6 +100,20 @@ def verify(receipt_path, allowed_signers):
                 f"canonical bytes")
         decision = entry.get("decision", {})
         verdict = decision.get("verdict") if isinstance(decision, dict) else None
+
+        # (f) the writer's own ``gated`` flag is NOT trusted: the
+        # irreversible classes (pay/submit/delete/send/publish, fixed in
+        # policy.IRREVERSIBLE) are gated by definition, so an OPEN on one of
+        # them needs an approval no matter what flag the writer recorded —
+        # this needs no policy file because the class names are part of the
+        # product.
+        action_class = action.get("action_class")
+        if verdict == "OPEN" and action_class in IRREVERSIBLE and not entry.get("gated"):
+            return _raise1(
+                "GATED-CLASS-WITHOUT-APPROVAL",
+                f"entry {index}: OPEN on irreversible class '{action_class}' "
+                f"with gated=false — irreversible classes are permanently "
+                f"gated and this entry carries no approval")
 
         # (e) single-use: a nonce may be SPENT (consumed by an OPEN of a
         # gated class) exactly once. Blocked attempts only record the
@@ -122,7 +142,7 @@ def verify(receipt_path, allowed_signers):
                            f"chain position — entries changed after sealing")
         ok, detail = receipt.verify_sshsig(
             str(seal["sig"]),
-            receipt.seal_preimage(index + 1, expected_head, path),
+            receipt.seal_preimage(index + 1, expected_head),
             receipt.SEAL_NAMESPACE, allowed_signers, executor)
         if ok is None:
             return {"ok": False, "exit": 2, "breach": None, "detail": detail}

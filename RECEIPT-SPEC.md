@@ -2,6 +2,9 @@
 
 Status: FROZEN. Every hash, test and doc sits on this file. Do not change a
 byte of it without a receipt-of-receipts discussion; v0.1 ships exactly this.
+Amended 2026-10-20 with the verifier defects the v0.1 rehearsal surfaced: the
+seal preimage binds content only, never the file's path, and `verify` never
+trusts the receipt's own `gated` flag for the irreversible classes.
 
 Product homepage claim (one honest line, also in README): v0.1's gate is
 **advisorial at the call boundary** — an agent that never calls `check` is not
@@ -71,6 +74,10 @@ Field rules:
 * `gated` is true for the irreversible classes (`pay`, `submit`, `delete`,
   `send`, `publish`) per policy. An OPEN entry with `gated: true` that has no
   `approval` object is invalid (exit 1, `NO-APPROVAL-ON-OPEN`) in `verify`.
+  `verify` does NOT trust this flag: the irreversible classes are gated by
+  definition, so an OPEN on one of them with `gated` absent or false is
+  invalid too (exit 1, `GATED-CLASS-WITHOUT-APPROVAL`). This needs no policy
+  file; the names are fixed in `policy.IRREVERSIBLE`.
 
 ## 2. Canonical action bytes (the thing the approval signs)
 
@@ -153,8 +160,14 @@ chain including that entry**:
   entries, computed exactly like the proven sibling shell.
 * entry `seal` = `{"covered": n, "head": head(n), "sig": SSHSIG}` where the
   SSHSIG signs the preimage string
-  `nullaosta-receipt:v1:<n>:<head(n)>:<normalized receipt path>` in namespace
-  `nullaosta-receipt`, made with the **receipt key**.
+  `nullaosta-receipt:v1:<n>:<head(n)>` in namespace
+  `nullaosta-receipt`, made with the **receipt key**. The preimage contains
+  no path: the seal binds CONTENT ONLY (the head through entry `n`), so an
+  offsite copy saved under a different filename verifies identically, while
+  any change to the recorded bytes still breaks the preimage.
+* timestamps (`at`, `issued_at`) are writer-asserted; `verify` does not
+  check them against real time (freshness is measured only from the
+  action's own `issued_at`, itself writer-asserted — see §4).
 * the writer's crash window is between "entry computed" and "seal attached":
   because the file is written only after the seal exists (temp + rename), the
   only observable states are the previous complete state or the new complete
@@ -170,11 +183,15 @@ supplies from outside the audited system. Exits:
 
 * **0** — chain sound, every seal validates, every OPEN-gated entry carries a
   valid approval signed by a principal inside `allowed_signers`, not the
-  executor, and no nonce spent twice;
+  executor, and no nonce spent twice; the seal binds content only, so the
+  receipt may have been copied or renamed before verification and the
+  outcome is the same;
 * **1** — ANY tamper or rule breach: file unparsable/truncated, structure
   broken, chain does not link, a seal missing/invalid/stale, an approval
   invalid or bound to the wrong hash, `SPENT-NONCE-REUSE`,
-  `TRUST-SPLIT-VIOLATION`, `NO-APPROVAL-ON-OPEN`, `UNSEALED-OR-TRUNCATED`;
+  `TRUST-SPLIT-VIOLATION`, `NO-APPROVAL-ON-OPEN`,
+  `GATED-CLASS-WITHOUT-APPROVAL` (an OPEN on a permanently irreversible
+  class recorded with the `gated` flag cleared), `UNSEALED-OR-TRUNCATED`;
 * **2** — could not run at all (no ssh-keygen, unreadable anchor, usage).
 
 This answers the evidence question, not the admission question: `0`
@@ -203,8 +220,16 @@ appears in exactly those two places): `decide()`, `seal()`, `verify()`.
   nonce. Deleting the spend record of an approval and reusing that approval
   is therefore possible for the writer alone; an auditor who keeps an
   out-of-band copy of the receipt file detects the deletion against their
-  copy. v0.1 mitigates the *accidental* case fully (fresh per-attempt nonces
-  make captured approvals useless across attempts; the in-file ledger stops
-  all same-file reuse) and documents the *malicious-writer* case as the
-  residual risk it is.
+  copy.
+* **The spent-approval ledger is scoped to ONE receipt file.** It stops all
+  same-file reuse, but it is not a global registry: if the writer starts a
+  fresh receipt file, a spent approval opens again (and the fresh file
+  re-seals cleanly). The writer-rewrite boundary and this ledger scope are
+  the same fact: anything the writer can do in one file can be done again
+  in a new one. Anchor the chain head out of band (an auditor's own copy,
+  or a place the writer cannot touch) to close both.
+* Timestamps (`at`, `issued_at`) are writer-asserted and are not checked
+  against real time by anything outside the receipt itself; `verify`'s
+  only time use, the approval expiry, is measured from `issued_at`'s own
+  claim.
 * The gate is advisorial at the call boundary — see §0.

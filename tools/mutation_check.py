@@ -160,6 +160,22 @@ GUARDS = (
         "tests": ["tests.test_tamper.TestEntryLevelTamper."
                   "test_mismatched_action_hash_fails_verification"],
     },
+    # 11. the writer's gated flag cannot whitewash an irreversible OPEN
+    {
+        "id": "gated_class_flag",
+        "why": "an OPEN on a permanently irreversible class (pay/submit/"
+               "delete/send/publish) must fail verification even when the "
+               "writer records the entry with gated=false and no approval — "
+               "the flag is not trusted, the fixed class names are",
+        "mutations": [("nullaosta/verify.py",
+                       '        if verdict == "OPEN" and action_class in'
+                       ' IRREVERSIBLE and not entry.get("gated"):\n',
+                       '        if False and verdict == "OPEN" and action_class'
+                       ' in IRREVERSIBLE and not entry.get("gated"):\n')],
+        "tests": ["tests.test_tamper.TestGatedFlagFabrication."
+                  "test_open_on_irreversible_class_with_gated_false_fails_"
+                  "verification"],
+    },
 )
 
 

@@ -50,8 +50,8 @@ class GenesisAndHead(support.KeyedCase):
     def test_seal_preimage_is_pinned(self):
         head_value = "h" * 64
         self.assertEqual(
-            receipt.seal_preimage(3, head_value, "./r.json"),
-            f"nullaosta-receipt:v1:3:{head_value}:r.json")
+            receipt.seal_preimage(3, head_value),
+            f"nullaosta-receipt:v1:3:{head_value}")
 
     def test_genesis_is_64_zeros(self):
         self.assertEqual(receipt.GENESIS, GENESIS)

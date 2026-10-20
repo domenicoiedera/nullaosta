@@ -60,7 +60,8 @@ nullaosta check --action-file nullaosta-pending.json --approval a.sig \
 #      DO-NOT-EXECUTE — SPENT: ... every approval is single-use        (exit 1)
 
 # 6. Anyone with the receipt and the public keys can verify, with no access to
-#    this machine and no key of their own. Any tamper exits nonzero.
+#    this machine and no key of their own; the file may be copied or renamed
+#    first, that changes nothing. Any tamper exits nonzero.
 nullaosta verify --receipt nullaosta-receipt.json \
   --allowed-signers "$HOME/.config/nullaosta/allowed_signers"
 
@@ -70,7 +71,11 @@ nullaosta log --receipt nullaosta-receipt.json
 
 ## What the receipt proves
 
-Proves: which actions ran, in what order, with what parameters, which were human-approved, by whom, and that the record has not been altered since it was written. An uninvolved third party can verify this from the file and the public keys alone.
+Proves: which actions ran, in what order, with what parameters, which were human-approved, by whom, and that an uninvolved third party cannot alter the record undetectably.
+
+Two honest boundaries on that. First, the writer holds the receipt key and can therefore rewrite the file itself: delete entries, re-stamp and re-seal, and the rewritten file still verifies against the public keys. That is why the chain head should be anchored out of band, in a place the writer cannot touch. The spent-approval ledger lives inside the receipt file, so a spent approval can open again against a fresh receipt file; that is a second reason to anchor the head out of band. Second, timestamps in the entries are asserted by the writer and are not independently checked.
+
+An uninvolved third party can verify all of the above from the file and the public keys alone, with no access to this machine, no private key, and no problem with the file having been copied or renamed in between.
 
 Does not prove: what the agent *thought* or intended, that every action the agent performed went through the gate (see the honesty note above), or the correctness of the underlying work.
 
@@ -83,9 +88,9 @@ Does not prove: what the agent *thought* or intended, that every action the agen
 | Human | approver key | approves a specific action hash |
 
 - The approval is bound to the hash of that exact action. It cannot be spent on a different action.
-- Every approval is single-use. A spent or replayed approval is rejected.
-- Entries are sealed per append, so there is no unsealed tail; an unsealed file verifies as FAILED, not clean.
-- `verify` additionally checks that the approver is in `allowed_signers` and is not the executor identity.
+- Every approval is single-use within its receipt file. A spent or replayed approval is rejected; a spent approval can open again against a fresh receipt file, which is why the chain head should be anchored out of band.
+- Entries are sealed per append, so there is no unsealed tail; an unsealed file verifies as FAILED, not clean. The seal binds the file contents, not the file name, so a renamed copy of an otherwise untouched receipt verifies.
+- `verify` additionally checks that the approver is in `allowed_signers` and is not the executor identity, and it does not trust the receipt's own `gated` flag: an OPEN on an irreversible class (pay, submit, delete, send, publish) must carry a valid approval no matter what the entry claims.
 - The gate is fail-closed: anything other than a valid, unspent, approving signature blocks.
 
 ## What it is not

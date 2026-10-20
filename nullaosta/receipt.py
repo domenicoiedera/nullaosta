@@ -22,8 +22,11 @@ Pinned definitions (§3.0 in RECEIPT-SPEC; the tests pin them byte-exactly):
   ``0..n-1``. This is the value the seal at append ``n`` signs.
 * **Seal** — entry ``n``'s ``seal`` is ``{"covered": n, "head": head(n),
   "sig": SSHSIG}``; the SSHSIG signs the preimage
-  ``nullaosta-receipt:v1:<n>:<head(n)>:<path>`` in namespace
-  ``nullaosta-receipt``, made with the executor's receipt key.
+  ``nullaosta-receipt:v1:<n>:<head(n)>`` in namespace
+  ``nullaosta-receipt``, made with the executor's receipt key. The seal
+  binds CONTENT ONLY (the head through entry ``n``), not the file's path:
+  an offsite copy under a different filename verifies identically, while
+  every tamper class still breaks the preimage.
 
 Nothing here decides policy or reads approvals; :mod:`nullaosta.gate` and
 :mod:`nullaosta.verify` do that on top of these primitives.
@@ -125,9 +128,16 @@ def normalize_path(path):
     return os.path.normpath(path).replace("\\", "/")
 
 
-def seal_preimage(count, head_value, path):
-    """The exact string the receipt seal signs — pinned, field order matters."""
-    return f"nullaosta-receipt:v1:{count}:{head_value}:{normalize_path(path)}"
+def seal_preimage(count, head_value):
+    """The exact string the receipt seal signs — pinned, field order matters.
+
+    The seal binds CONTENT ONLY: the head covers every entry's exact bytes
+    (including the recorded path-free receipt shape), so the file's name or
+    location plays no part. An offsite copy under a different filename
+    verifies identically, and any change to the content still breaks the
+    preimage.
+    """
+    return f"nullaosta-receipt:v1:{count}:{head_value}"
 
 
 # ── ssh-keygen plumbing (the executor's receipt key) ─────────────────────────
@@ -335,7 +345,7 @@ def append_and_seal(path, payloads, key, executor=None):
         for index in range(base, len(entries)):
             covered = index + 1
             head_value = head_at(entries, covered)
-            preimage = seal_preimage(covered, head_value, path)
+            preimage = seal_preimage(covered, head_value)
             sig, error = sign_preimage(preimage, key, SEAL_NAMESPACE)
             if sig is None:
                 return (None, error)

@@ -142,7 +142,7 @@ class TestEntryLevelTamper(TamperBase):
         head_value = hashlib.sha256(
             receipt.entry_hash(entry).encode("utf-8")).hexdigest()
         sig, detail = receipt.sign_preimage(
-            receipt.seal_preimage(1, head_value, self.genuine_path),
+            receipt.seal_preimage(1, head_value),
             self.paths["receipt_key"], RECEIPT_NS)
         self.assertTrue(sig, detail)
         doc["entries"][0]["seal"] = {"covered": 1, "head": head_value,
@@ -159,8 +159,7 @@ class TestSealTamper(TamperBase):
         doc = self._reset()
         seal = doc["entries"][-1]["seal"]
         sig, detail = receipt.sign_preimage(
-            receipt.seal_preimage(seal["covered"], seal["head"],
-                                  self.genuine_path),
+            receipt.seal_preimage(seal["covered"], seal["head"]),
             self.paths["attacker_key"], RECEIPT_NS)
         self.assertTrue(sig, detail)
         doc["entries"][-1]["seal"]["sig"] = sig
@@ -190,8 +189,7 @@ class TestSealTamper(TamperBase):
                           for e in entries_out[:covered]).
                 encode("utf-8")).hexdigest()
             sig, detail = receipt.sign_preimage(
-                receipt.seal_preimage(covered, head_value,
-                                      self.genuine_path),
+                receipt.seal_preimage(covered, head_value),
                 self.paths["attacker_key"], RECEIPT_NS)
             self.assertTrue(sig, detail)
             entry["seal"] = {"covered": covered, "head": head_value, "sig": sig}
@@ -264,6 +262,64 @@ class TestApprovalTamper(TamperBase):
         self._append_as_writer(payload)
         result = self.verify_fails()
         self.assertEqual(result["breach"], "APPROVAL-INVALID")
+
+
+class TestGatedFlagFabrication(TamperBase):
+    """F1: verify must not trust the writer's own ``gated`` flag. The
+    irreversible class names (pay/submit/delete/send/publish) are fixed in
+    policy.IRREVERSIBLE, so verify needs no policy file input to police
+    them."""
+
+    def test_open_on_irreversible_class_with_gated_false_fails_verification(
+            self):
+        """The honest writer appends an OPEN for a fresh ``pay`` action with
+        approval None and gated=false and seals it: verify must NOT bless
+        that history."""
+        self._reset()
+        action = new_action("pay", "https://shop.example.com/unflagged",
+                            {"fresh": True})
+        fabricated = gate.record_decision(
+            action, None, "OPEN", None, "fabricated ungated open", None,
+            False, 900)
+        self._append_as_writer(fabricated)
+        result = self.verify_fails()
+        self.assertEqual(result["breach"], "GATED-CLASS-WITHOUT-APPROVAL")
+
+    def test_open_on_a_non_irreversible_class_without_gating_verifies(self):
+        """Positive control: a genuinely ungated OPEN on an allow class
+        still verifies — the restriction is about the irreversible
+        classes only."""
+        self._reset()
+        action = new_action("browse", "https://shop.example.com/list",
+                            {"fresh": True})
+        allowed = gate.record_decision(
+            action, None, "OPEN", None,
+            "policy allows this class for this domain", None, False, 900)
+        self._append_as_writer(allowed)
+        result = verify(self.genuine_path, self.paths["allowed_signers"])
+        self.assertEqual(result["exit"], 0)
+
+
+class TestOffsiteRename(TamperBase):
+    """F5: the seal binds the receipt's CONTENT (the chain head), not the
+    file's name or location. An offsite copy saved under a different
+    filename verifies identically."""
+
+    def test_receipt_still_verifies_in_place(self):
+        self._reset()
+        result = verify(self.genuine_path, self.paths["allowed_signers"])
+        self.assertEqual(result["exit"], 0)
+
+    def test_renamed_offsite_copy_verifies_too(self):
+        self._reset()
+        offsite = os.path.join(tempfile.mkdtemp(prefix="nullaosta-offsite-"),
+                               "offsite-copy.json")
+        self.addCleanup(shutil.rmtree, os.path.dirname(offsite),
+                        ignore_errors=True)
+        with open(offsite, "wb") as handle:
+            handle.write(self.genuine_bytes)
+        result = verify(offsite, self.paths["allowed_signers"])
+        self.assertEqual(result["exit"], 0)
 
 
 class MissingAnchor(TamperBase):
