@@ -29,11 +29,12 @@ REQUIRED_MODULES = (
     "test_engine.py",
     "test_tamper.py",
     "test_cli_e2e.py",
+    "test_release_homebrew.py",
 )
 
-# Measured 2026-10-20 on the v0.1.0 tree: 49 tests, before this file was added.
-# A floor rather than an equality, so adding tests is free.
-MINIMUM_TESTS = 49
+# Measured 2026-10-20: 49 tests on the v0.1.0 tree, 67 once the release tool's
+# tests were added. A floor rather than an equality, so adding tests is free.
+MINIMUM_TESTS = 67
 
 
 def _defines_tests(module_name):

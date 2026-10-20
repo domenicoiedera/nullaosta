@@ -136,6 +136,13 @@ Everything runs on your machine. Policy, keys, approvals and receipts stay local
 
 v0.1.0 is under active development. See CHANGELOG.md.
 
+## Releasing
+
+See [RELEASING.md](RELEASING.md). Every release bumps the Homebrew tap with
+`python3 tools/release_homebrew.py --tap-dir <tap> --push`, and
+`python3 tools/release_homebrew.py --check` proves the tap is current by
+comparing it against the bytes actually published.
+
 ## License
 
 MIT.
