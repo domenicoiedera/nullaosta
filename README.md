@@ -1,5 +1,7 @@
 # nullaosta
 
+[![CI](https://github.com/domenicoiedera/nullaosta/actions/workflows/ci.yml/badge.svg)](https://github.com/domenicoiedera/nullaosta/actions/workflows/ci.yml) ![Python 3.10 | 3.11 | 3.12](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue) ![dependencies: 0](https://img.shields.io/badge/dependencies-0-brightgreen)
+
 A fail-closed approval gate and tamper-evident, third-party-verifiable receipts for AI agents. Zero dependencies, MIT, runs entirely on your machine.
 
 **Honest scope note:** in v0.1 the gate is advisory at the call boundary. An agent that never calls `check` is not stopped by it. v0.1 governs the actions that go through the gate and proves what happened.
