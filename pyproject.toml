@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nullaosta"
+version = "0.1.0"
+description = "Fail-closed approval gate and third-party-verifiable sealed receipts for agent actions. Stdlib only."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+# Author credit lives in LICENSE only (the leak gate allows the name in
+# exactly one file).
+keywords = ["agents", "approval-gate", "fail-closed", "receipts", "audit", "signatures"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS :: MacOS X",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+]
+
+# Zero runtime dependencies: the whole engine is stdlib + OpenSSH ssh-keygen.
+dependencies = []
+
+[project.scripts]
+nullaosta = "nullaosta.cli:main"
