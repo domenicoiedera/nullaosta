@@ -26,6 +26,13 @@ pip install "git+https://github.com/domenicoiedera/nullaosta.git"
 
 Or clone the repository and run `pip install .` inside it.
 
+Or into an isolated environment, which is the better default on macOS and puts the CLI on your PATH:
+
+```bash
+pipx install https://github.com/domenicoiedera/nullaosta/releases/download/v0.1.0/nullaosta-0.1.0-py3-none-any.whl
+uv tool install https://github.com/domenicoiedera/nullaosta/releases/download/v0.1.0/nullaosta-0.1.0-py3-none-any.whl
+```
+
 Requires Python 3.10 or newer. No other dependencies. The package is not on PyPI yet; publishing it there would only shorten that first command to `pip install nullaosta`.
 
 ## Usage
