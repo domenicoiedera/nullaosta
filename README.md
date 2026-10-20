@@ -12,13 +12,21 @@ Developers and teams who run AI agents that can spend money, submit forms, delet
 
 ## Install
 
-Until the package is published on PyPI, install from source: clone this repository, then
+No PyPI account needed. Install the wheel attached to the release:
 
 ```bash
-pip install .
+pip install https://github.com/domenicoiedera/nullaosta/releases/download/v0.1.0/nullaosta-0.1.0-py3-none-any.whl
 ```
 
-Requires Python 3.10 or newer. No other dependencies.
+Or straight from source (needs `git`):
+
+```bash
+pip install "git+https://github.com/domenicoiedera/nullaosta.git"
+```
+
+Or clone the repository and run `pip install .` inside it.
+
+Requires Python 3.10 or newer. No other dependencies. The package is not on PyPI yet; publishing it there would only shorten that first command to `pip install nullaosta`.
 
 ## Usage
 
