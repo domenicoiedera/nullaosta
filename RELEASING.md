@@ -63,9 +63,11 @@ python3 tools/release_homebrew.py --check
 
 Exit `0` means the tap serves this tree's version with a sha256 that matches the
 published asset. Exit `1` means the tap is stale, or hand-edited into a state
-that does not match the asset: fix it by re-running step 5. This is cheap enough
-to run before announcing anything, and it is the guard against the failure this
-repo cares about elsewhere too - a green-looking state that is not true.
+that does not match the asset, or the asset could not be downloaded at all -
+the tool refuses to pin something it could not hash. Fix it by re-running step
+5. This is cheap enough to run before announcing anything, and it is the guard
+against the failure this repo cares about elsewhere too - a green-looking state
+that is not true.
 
 ## Verify on the machine that will use it
 

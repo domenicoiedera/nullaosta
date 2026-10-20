@@ -123,7 +123,12 @@ def formula_state(text):
 
 
 def rewrite_formula(text, url, sha):
-    """Replace exactly the url and sha256 values, leave every other byte."""
+    """Replace exactly the url and sha256 values, leave every other byte.
+
+    Only the first url/sha256 pair is rewritten, which is correct for this tap:
+    it holds one formula and no `resource` blocks. A formula with resources
+    would need every pair bumped, and this tool would silently do half the job.
+    """
     if not URL_LINE.search(text) or not SHA_LINE.search(text):
         raise ValueError("formula is missing a url or sha256 line")
     text = URL_LINE.sub(lambda m: f'{m.group(1)}url "{url}"', text, count=1)
@@ -269,7 +274,7 @@ def main(argv=None):
             print("nothing to commit: the tap is already at this version")
             return 0
         _git(tap_dir, "add", FORMULA_PATH)
-        _git(tap_dir, "commit", "-m", message)
+        _git(tap_dir, "commit", "-m", message, "--", FORMULA_PATH)
         push = _git(tap_dir, "push", "origin", TAP_BRANCH)
         print(f"PUSHED    {push.stderr.strip() or 'ok'}")
         print(f"tap HEAD  {_git(tap_dir, 'rev-parse', '--short', 'HEAD').stdout.strip()}")

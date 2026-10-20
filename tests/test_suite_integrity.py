@@ -32,9 +32,9 @@ REQUIRED_MODULES = (
     "test_release_homebrew.py",
 )
 
-# Measured 2026-10-20: 49 tests on the v0.1.0 tree, 67 once the release tool's
-# tests were added. A floor rather than an equality, so adding tests is free.
-MINIMUM_TESTS = 67
+# Measured 2026-10-20: 49 tests on the v0.1.0 tree, 70 once the release tool's
+# tests and the verifier's two findings became regression tests.
+MINIMUM_TESTS = 70
 
 
 def _defines_tests(module_name):
