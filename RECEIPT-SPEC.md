@@ -171,10 +171,14 @@ chain including that entry**:
 * the writer's crash window is between "entry computed" and "seal attached":
   because the file is written only after the seal exists (temp + rename), the
   only observable states are the previous complete state or the new complete
-  state. A file whose **last** entry has no `seal`, or whose last seal does not
-  re-verify, is **UNSEALED = NOT OK**: `verify` exits 1 with
+  state. A file whose **last** entry has no `seal` at all, or whose bytes are cut
+  off mid-seal, is **UNSEALED = NOT OK**: `verify` exits 1 with
   `UNSEALED-OR-TRUNCATED` (also the verdict for a byte-truncated, unparsable
-  file). An unsealed file is never reported as clean.
+  file). A `seal` that is present but does not re-verify under the receipt key,
+  or that seals a head which no longer matches the chain, is likewise **NOT OK**
+  and exits 1 with `SEAL-INVALID` (or `SEAL-STALE` for a stale head). The two
+  cases carry different labels and the same fail-closed outcome. An unsealed file
+  is never reported as clean.
 
 ## 6. `verify` — independent, third-party
 

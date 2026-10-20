@@ -52,6 +52,12 @@ are new in nullaosta and did not exist in gatesmith.
 
 ### Note
 
-The README usage example is built from the frozen CLI verb set. It is marked as
-pending a real re-run at acceptance: it must be re-executed against the built
-CLI and corrected before release.
+The README usage example was executed verbatim against the built CLI before
+release, so it is a transcript of a real run rather than an illustration.
+
+Known boundaries, stated in full in `RECEIPT-SPEC.md` and summarised in the
+README: the receipt-key holder can rewrite the receipt (drop entries, re-stamp,
+re-seal) and the result still verifies, the spent-approval ledger is scoped to a
+single receipt file rather than global, and timestamps are asserted by the
+writer rather than independently checked. Anchor the chain head out of band if
+you need to detect that class of rewrite.
