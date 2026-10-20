@@ -33,6 +33,13 @@ pipx install https://github.com/domenicoiedera/nullaosta/releases/download/v0.1.
 uv tool install https://github.com/domenicoiedera/nullaosta/releases/download/v0.1.0/nullaosta-0.1.0-py3-none-any.whl
 ```
 
+Or with Homebrew, via this project's tap:
+
+```bash
+brew tap domenicoiedera/nullaosta
+brew install nullaosta
+```
+
 Requires Python 3.10 or newer. No other dependencies. The package is not on PyPI yet; publishing it there would only shorten that first command to `pip install nullaosta`.
 
 ## Usage
